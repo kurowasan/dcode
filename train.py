@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from model import DC, DC_one_equation
+from model import DC
 from utils import RunningAverageMeter, makedirs
 from plot import plot_mask, plot_mask_through_time, plot_loss, Visualization
 

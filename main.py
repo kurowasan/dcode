@@ -1,4 +1,4 @@
-from train import train, train_one_equation
+from train import train
 import numpy as np
 import argparse
 from data import DataManager
