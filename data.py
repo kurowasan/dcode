@@ -122,8 +122,6 @@ class BioModel(nn.Module):
         elif self.interv == 4:
             output[:, 4] = k[6] * triose
 
-        # TODO: add noise!
-
         return output
 
 
@@ -141,8 +139,6 @@ def sample_dag(nodes, expected_density):
         num_parents = np.random.binomial(n=nodes - i - 1, p=prob_connection)
         parents = np.random.choice(possible_parents, size=num_parents, replace=False)
         adjacency_matrix[parents,node] = 1
-
-    # causal_order = causal_order[::-1]
 
     return adjacency_matrix
 
@@ -169,7 +165,7 @@ class Dataset:
         self.device = device
 
 
-        if self.data_type == "test_interv":
+        if self.data_type == "test_interv" or self.data_type == "lin_coupled":
             self.t = torch.linspace(0., 25., n).to(device)
             blow_up = True
             while(blow_up):
@@ -188,7 +184,6 @@ class Dataset:
 
         elif self.data_type == "maillard":
             self.t = torch.linspace(0., 100., n).to(device)
-            # self.generate_data()
 
             reactants = ["glu", "fru", "formic", "triose", "acetic", "cn",
                          "amadori", "amp", "c5", "lys", "melanoidin"]
@@ -214,6 +209,50 @@ class Dataset:
             self.d = 2
             self.true_y0 = torch.tensor([[2., 0.]]).to(self.device)
             self.true_A = torch.tensor([[-0.1, 1.5], [-1.5, -0.1]]).to(self.device)
+        elif self.data_type == "lin_coupled" and self.i_interv == 0:
+            self.d = 4
+            self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
+            self.true_A = torch.tensor([[-0.1, -0.1, 0, 0],
+                                        [0, 0, 0.1, 0],
+                                        [0, 0, -0.2, 0],
+                                        [0, 0.2, 0, -0.2]]).to(self.device)
+            self.dag = torch.tensor([[1,1,0,0], [0,0,1,0], [0,0,1,0], [0,1,0,1]])
+        elif self.data_type == "lin_coupled" and self.i_interv == 1:
+            self.d = 4
+            self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
+            self.true_A = torch.tensor([[-0.4, -0.4, 0, 0],
+                                        [0, 0, 0.1, 0],
+                                        [0, 0, -0.2, 0],
+                                        [0, 0.2, 0, -0.2]]).to(self.device)
+            self.dag = torch.tensor([[1,1,0,0], [0,0,1,0], [0,0,1,0], [0,1,0,1]])
+            self.interv_node = [0]
+        elif self.data_type == "lin_coupled" and self.i_interv == 2:
+            self.d = 4
+            self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
+            self.true_A = torch.tensor([[-0.1, -0.1, 0, 0.1],
+                                        [0, 0, -0.1, 0],
+                                        [0, 0, -0.2, 0],
+                                        [0, 0.2, 0, -0.2]]).to(self.device)
+            self.dag = torch.tensor([[1,1,0,0], [0,0,1,0], [0,0,1,0], [0,1,0,1]])
+            self.interv_node = [1]
+        elif self.data_type == "lin_coupled" and self.i_interv == 3:
+            self.d = 4
+            self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
+            self.true_A = torch.tensor([[-0.1, -0.1, 0, 0.1],
+                                        [0, 0, 0.1, 0],
+                                        [0, 0, -0.4, 0],
+                                        [0, 0.2, 0, -0.2]]).to(self.device)
+            self.dag = torch.tensor([[1,1,0,0], [0,0,1,0], [0,0,1,0], [0,1,0,1]])
+            self.interv_node = [2]
+        elif self.data_type == "lin_coupled" and self.i_interv == 4:
+            self.d = 4
+            self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
+            self.true_A = torch.tensor([[-0.1, -0.1, 0, 0.1],
+                                        [0, 0, 0.1, 0],
+                                        [0, 0, -0.2, 0],
+                                        [0, 0.5, 0, -0.1]]).to(self.device)
+            self.dag = torch.tensor([[1,1,0,0], [0,0,1,0], [0,0,1,0], [0,1,0,1]])
+            self.interv_node = [3]
         elif self.data_type == "test_interv" and self.i_interv == 0:
             self.d = 4
             self.true_y0 = torch.tensor([[2., 0., 1., 1.]]).to(self.device)
@@ -265,25 +304,18 @@ class Dataset:
                                         [-1.5, -0.1, 0, 0],
                                         [0, 0, -0.9, 1.2],
                                         [0, 0, -2, -0.2]]).to(self.device)
-            # self.true_A = torch.tensor([[-0.01, -0.01, 0, 0],
-            #                             [-0.01, 0.01, 0, 0],
-            #                             [0, 0, -0.2, 2],
-            #                             [0, 0, -2, -0.2]]).to(self.device)
             self.dag = torch.tensor([[1,1,0,0], [1,1,0,0], [0,0,1,1], [0,0,1,1]])
-            # self.interv_node = [0, 1]
             self.interv_node = [2]
         else:
             if self.obs_model is None:
                 self.true_y0 = torch.rand((1, self.d)).to(self.device)
-                true_A = torch.normal(0, 1, size=(self.d, self.d))
+                true_A = torch.normal(0, 0.1, size=(self.d, self.d)) - 0.1
                 self.true_A = true_A * self.dag
             else:
-                # self.true_y0 = torch.rand((1, self.d)).to(self.device)
                 self.true_y0 = torch.clone(self.obs_model.true_y0)
                 true_A = torch.clone(self.obs_model.true_A)
                 rand_i = np.random.choice(np.arange(self.d), 1)
-                # TODO: check if should change column or row...
-                true_A[rand_i, :] = torch.normal(0, 1, size=(1, self.d))
+                true_A[rand_i, :] = torch.normal(0, 0.1, size=(1, self.d)) - 0.1
                 self.interv_node = rand_i
                 self.true_A = true_A * self.obs_model.dag
 
@@ -297,7 +329,6 @@ class Dataset:
         batch_y0 = self.true_y[s]  # (M, D)
         batch_t = self.t[:self.batch_time]  # (T)
         batch_y = torch.stack([self.true_y[s + i] for i in range(self.batch_time)], dim=0)  # (T, M, D)
-        # print(batch_y0.size(), batch_t.size(), batch_y.size())
         return batch_y0.to(self.device), batch_t.to(self.device), batch_y.to(self.device)
 
 
@@ -309,7 +340,6 @@ class DataManager:
         self.exp_path = exp_path
 
         if data_type not in ["original", "test", "test_interv"]:
-            # self.dag = sample_dag(d, 1.5)
             self.dag = sample_binary_matrix(d, 0.4)
         else:
             self.dag = None

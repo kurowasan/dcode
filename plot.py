@@ -64,11 +64,16 @@ def plot_mask(mask, gt_mask, exp_path, name=''):
     plt.savefig(os.path.join(exp_path, 'mask' + name + '.png'))
     plt.clf()
 
+def moving_average(x, w):
+    return np.convolve(x, np.ones(w), 'valid') / w
 
-def plot_loss(loss, num_iter, exp_path, name=""):
+def plot_loss(loss, reg, num_iter, exp_path, name=""):
     if num_iter > 50:
         plt.clf()
-        plt.plot(range(50, num_iter), loss[50:num_iter])
+        avg_loss = moving_average(loss[:num_iter], 40)
+        avg_reg = moving_average(reg[:num_iter], 40)
+        plt.plot(range(len(avg_loss)), avg_loss)
+        plt.plot(range(len(avg_reg)), avg_reg)
         plt.savefig(os.path.join(exp_path, 'loss' + name + '.png'))
 
 
@@ -81,6 +86,7 @@ def plot_trajectories(t, data, traj_name, exp_path, name):
 
 
 class Visualization:
+    """ Code taken from ode_demo.py of torchdiffeq """
     def __init__(self):
         makedirs('png')
         self.fig = plt.figure(figsize=(12, 4), facecolor='white')
@@ -91,7 +97,7 @@ class Visualization:
 
     def plot(self, true_y, pred_y, t, device, odefunc, itr):
 
-        print(true_y.size()) # 1000, 1, 4
+        print(true_y.size())
         print(pred_y.size())
         self.ax_traj.cla()
         self.ax_traj.set_title('Trajectories')
@@ -132,6 +138,4 @@ class Visualization:
         self.ax_vecfield.set_ylim(-2, 2)
 
         self.fig.tight_layout()
-        # plt.draw()
-        # plt.pause(0.001)
         self.fig.savefig('png/{:03d}'.format(itr))

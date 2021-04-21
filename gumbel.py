@@ -1,3 +1,6 @@
+"""
+Code reused from DCDI
+"""
 import torch
 
 
@@ -56,7 +59,7 @@ class GumbelAdjacency(torch.nn.Module):
             return self.fixed_ouput
 
     def reset_parameters(self):
-        torch.nn.init.constant_(self.log_alpha, 2)
+        torch.nn.init.constant_(self.log_alpha, 5)
         self.fixed = False
 
     def fix(self, adj):
