@@ -1,2 +1,2 @@
-# dcode
-Code for the project Differentiable Causal Discovery of ODE systems
+# NCODE
+Code for the project Neural Causal Discovery of ODE systems
